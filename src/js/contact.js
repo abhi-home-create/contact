@@ -66,9 +66,8 @@ function showFeedback(message, isError) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('contactForm');
-    
     const validator = new FormValidator(form);
-    const rateLimiter = new RateLimiter(3, 60000);
+    const rateLimiter = new RateLimiter(3, 60000); // 3 requests per minute
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -90,36 +89,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const formData = new FormData(form);
-            const urlEncodedData = new URLSearchParams(formData).toString();
-
-            // Use JSONP approach with Google Scripts
-            const scriptUrl = `${window.GOOGLE_SCRIPT_URL}?${urlEncodedData}&callback=formSubmitCallback`;
+            const params = new URLSearchParams(formData);
             
-            // Create a temporary callback function
-            window.formSubmitCallback = function(response) {
-                if (response.result === 'success') {
+            // Generate unique callback name
+            const callbackName = 'formCallback_' + Date.now();
+            
+            // Create callback function
+            window[callbackName] = function(response) {
+                if (response.status === 'success') {
                     showFeedback('Message sent successfully!', false);
                     form.reset();
                 } else {
-                    showFeedback('Error sending message. Please try again.', true);
+                    showFeedback(response.message || 'Error sending message. Please try again.', true);
                 }
+                delete window[callbackName];
             };
 
-            // Create and append script element
+            params.append('callback', callbackName);
+            
             const script = document.createElement('script');
-            script.src = scriptUrl;
-            document.body.appendChild(script);
+            script.src = `${window.GOOGLE_SCRIPT_URL}?${params.toString()}`;
+            
+            script.onerror = () => {
+                showFeedback('Error connecting to server. Please try again.', true);
+                delete window[callbackName];
+            };
 
-            // Clean up
+            document.body.appendChild(script);
+            
             script.onload = function() {
                 document.body.removeChild(script);
-                delete window.formSubmitCallback;
             };
             
         } catch (error) {
             console.error('Error:', error);
             showFeedback('Error sending message. Please try again.', true);
-            
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = 'Send Message';
