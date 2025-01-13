@@ -9,6 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
+      - name: Print working directory
+        run: pwd
+
+      - name: List files in working directory
+        run: ls -la
+
       - name: Replace script URL
         run: |
           sed -i 's|{{ secrets.GOOGLE_SCRIPT_URL }}|${{ secrets.GOOGLE_SCRIPT_URL }}|g' index.html
