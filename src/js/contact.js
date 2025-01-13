@@ -59,8 +59,6 @@ function showFeedback(message, isError) {
     feedbackEl.className = `form-feedback ${isError ? 'error' : 'success'}`;
     feedbackEl.style.display = 'block';
     
-    console.log(`Form feedback: ${message} (${isError ? 'error' : 'success'})`);
-    
     setTimeout(() => {
         feedbackEl.style.display = 'none';
     }, 5000);
@@ -68,14 +66,7 @@ function showFeedback(message, isError) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('contactForm');
-    // Remove config import and directly set the form action
-    form.action = window.GOOGLE_SCRIPT_URL || '';
     
-    if (!form.action) {
-        console.error('Google Script URL not configured');
-        return;
-    }
-
     const validator = new FormValidator(form);
     const rateLimiter = new RateLimiter(3, 60000);
 
@@ -101,19 +92,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(form);
             const urlEncodedData = new URLSearchParams(formData).toString();
 
-            console.log('Sending data:', Object.fromEntries(formData));
+            // Use JSONP approach with Google Scripts
+            const scriptUrl = `${window.GOOGLE_SCRIPT_URL}?${urlEncodedData}&callback=formSubmitCallback`;
+            
+            // Create a temporary callback function
+            window.formSubmitCallback = function(response) {
+                if (response.result === 'success') {
+                    showFeedback('Message sent successfully!', false);
+                    form.reset();
+                } else {
+                    showFeedback('Error sending message. Please try again.', true);
+                }
+            };
 
-            const response = await fetch(form.action, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: urlEncodedData
-            });
+            // Create and append script element
+            const script = document.createElement('script');
+            script.src = scriptUrl;
+            document.body.appendChild(script);
 
-            showFeedback('Message sent successfully!', false);
-            form.reset();
+            // Clean up
+            script.onload = function() {
+                document.body.removeChild(script);
+                delete window.formSubmitCallback;
+            };
             
         } catch (error) {
             console.error('Error:', error);
