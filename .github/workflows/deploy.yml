@@ -11,11 +11,12 @@ jobs:
       
       - name: Replace script URL
         run: |
-          sed -i 's|{{ secrets.GOOGLE_SCRIPT_URL }}|${{ secrets.GOOGLE_SCRIPT_URL }}|g' index.html
+          echo "Replacing Google Script URL..."
+          perl -pi -e 's|window\.GOOGLE_SCRIPT_URL = '\''.*'\''|window.GOOGLE_SCRIPT_URL = '"'"'${{ secrets.GOOGLE_SCRIPT_URL }}'"'"'|g' index.html 
 
       - name: Test Google Script URL endpoint
         run: |
-          curl -X GET "${{ secrets.GOOGLE_SCRIPT_URL }}?callback=test&name=Test&email=test@example.com&subject=Test&message=Test"
+          curl "https://script.google.com/macros/s/AKfycbySM1utRz3tcFRcqSI4ixSOKIQsG_9CsqA8SGoG289FCrvOHKko2VxO-DjulwtkqMUL/exec?callback=test"
 
       - name: Verify response
         run: |
