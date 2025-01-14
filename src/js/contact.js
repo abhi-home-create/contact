@@ -1,4 +1,3 @@
-// contact.js
 class FormValidator {
     constructor(form) {
         this.form = form;
@@ -60,13 +59,11 @@ class ContactForm {
         this.form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Check rate limit
             if (!this.rateLimiter.checkLimit()) {
                 this.showFeedback('Please wait before submitting again.', true);
                 return;
             }
 
-            // Validate form
             const validation = this.validator.validateForm();
             if (!validation.isValid) {
                 this.showFeedback(validation.errors.join('. '), true);
@@ -79,22 +76,28 @@ class ContactForm {
 
             try {
                 const formData = new FormData(this.form);
-                const data = Object.fromEntries(formData);
+                const queryString = new URLSearchParams(formData).toString();
                 
-                // Use fetch with CORS mode
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to send message');
+                // Create a temporary form
+                const tempForm = document.createElement('form');
+                tempForm.method = 'POST';
+                tempForm.action = GOOGLE_SCRIPT_URL;
+                tempForm.target = '_blank'; // This prevents page reload
+                
+                // Add hidden fields
+                for (let [key, value] of formData.entries()) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = value;
+                    tempForm.appendChild(input);
                 }
-
+                
+                // Add the form to the document and submit it
+                document.body.appendChild(tempForm);
+                tempForm.submit();
+                document.body.removeChild(tempForm);
+                
                 this.showFeedback('Message sent successfully!', false);
                 this.form.reset();
                 
