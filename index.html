@@ -91,12 +91,11 @@
         <p>&copy; 2025 Computational Plasma Physics Blog. All rights reserved.</p>
     </footer>
 
-    <script>
-        window.CONFIG = {
-          GOOGLE_SCRIPT_URL: "GOOGLE_SCRIPT_URL_PLACEHOLDER"
-        };
-      </script>
-    <script src="src/js/contact.js"></script>
+    <script type="module">
+        import CONFIG from './src/js/config/environment.js';
+        window.CONFIG = CONFIG;
+    </script>
+    <script type="module" src="src/js/contact.js"></script>
 
        
 </body>
