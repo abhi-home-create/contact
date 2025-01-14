@@ -1,3 +1,4 @@
+// contact.js
 class FormValidator {
     constructor(form) {
         this.form = form;
@@ -47,116 +48,85 @@ class RateLimiter {
     }
 }
 
-function showFeedback(message, isError) {
-    let feedbackEl = document.querySelector('.form-feedback');
-    if (!feedbackEl) {
-        feedbackEl = document.createElement('div');
-        feedbackEl.className = 'form-feedback';
-        document.querySelector('.contact-form').insertAdjacentElement('beforeend', feedbackEl);
-    }
-    
-    feedbackEl.textContent = message;
-    feedbackEl.className = `form-feedback ${isError ? 'error' : 'success'}`;
-    feedbackEl.style.display = 'block';
-    
-    setTimeout(() => {
-        feedbackEl.style.display = 'none';
-    }, 5000);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('contactForm');
-    
-    // Validate Google Script URL
-    if (!window.GOOGLE_SCRIPT_URL || window.GOOGLE_SCRIPT_URL.includes('{{')) {
-        console.error('Invalid Google Script URL configuration');
-        showFeedback('Form is misconfigured. Please contact administrator.', true);
-        return;
+class ContactForm {
+    constructor(formId) {
+        this.form = document.getElementById(formId);
+        this.validator = new FormValidator(this.form);
+        this.rateLimiter = new RateLimiter(5, 60000); // 5 requests per minute
+        this.setupForm();
     }
 
-    // Clean up URL if needed
-    window.GOOGLE_SCRIPT_URL = window.GOOGLE_SCRIPT_URL.trim();
-    
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const submitButton = form.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Sending...';
-
-        try {
-            const formData = new FormData(form);
-            const params = new URLSearchParams(formData);
+    setupForm() {
+        this.form.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            // Generate callback name
-            const callbackName = 'formCallback_' + Date.now();
-            
-            // Create promise to handle JSONP response
-            const responsePromise = new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    delete window[callbackName];
-                    reject(new Error('Request timed out'));
-                }, 10000);
-                
-                window[callbackName] = function(response) {
-                    clearTimeout(timeout);
-                    resolve(response);
-                };
-            });
-            
-            params.append('callback', callbackName);
-            
-            // Create and append script
-            const script = document.createElement('script');
-            const url = new URL(window.GOOGLE_SCRIPT_URL);
-            url.search = params.toString();
-            
-            console.log('Submitting to:', url.toString());
-            script.src = url.toString();
-            
-            script.onerror = (error) => {
-                console.error('Script loading error:', error);
-                throw new Error('Failed to connect to server');
-            };
-            
-            document.body.appendChild(script);
-            
-            const response = await responsePromise;
-            
-            if (response.status === 'success') {
-                showFeedback('Message sent successfully!', false);
-                form.reset();
-            } else {
-                throw new Error(response.message || 'Server returned an error');
+            // Check rate limit
+            if (!this.rateLimiter.checkLimit()) {
+                this.showFeedback('Please wait before submitting again.', true);
+                return;
             }
-            
-        } catch (error) {
-            console.error('Form submission error:', error);
-            showFeedback(error.message || 'Error sending message. Please try again.', true);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = 'Send Message';
-            
-            // Clean up any leftover scripts
-            const scripts = document.querySelectorAll('script[src*="' + window.GOOGLE_SCRIPT_URL + '"]');
-            scripts.forEach(script => script.remove());
-        }
-    });
-});
 
-function showFeedback(message, isError) {
-    let feedbackEl = document.querySelector('.form-feedback');
-    if (!feedbackEl) {
-        feedbackEl = document.createElement('div');
-        feedbackEl.className = 'form-feedback';
-        document.querySelector('.contact-form').insertAdjacentElement('beforeend', feedbackEl);
+            // Validate form
+            const validation = this.validator.validateForm();
+            if (!validation.isValid) {
+                this.showFeedback(validation.errors.join('. '), true);
+                return;
+            }
+
+            const submitButton = this.form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Sending...';
+
+            try {
+                const formData = new FormData(this.form);
+                const data = Object.fromEntries(formData);
+                
+                // Use fetch with CORS mode
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send message');
+                }
+
+                this.showFeedback('Message sent successfully!', false);
+                this.form.reset();
+                
+            } catch (error) {
+                console.error('Form submission error:', error);
+                this.showFeedback('Error sending message. Please try again.', true);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Send Message';
+            }
+        });
     }
-    
-    feedbackEl.textContent = message;
-    feedbackEl.className = `form-feedback ${isError ? 'error' : 'success'}`;
-    feedbackEl.style.display = 'block';
-    
-    setTimeout(() => {
-        feedbackEl.style.display = 'none';
-    }, 5000);
+
+    showFeedback(message, isError) {
+        let feedbackEl = this.form.querySelector('.form-feedback');
+        if (!feedbackEl) {
+            feedbackEl = document.createElement('div');
+            feedbackEl.className = 'form-feedback';
+            this.form.insertAdjacentElement('beforeend', feedbackEl);
+        }
+        
+        feedbackEl.textContent = message;
+        feedbackEl.className = `form-feedback ${isError ? 'error' : 'success'}`;
+        feedbackEl.style.display = 'block';
+        
+        setTimeout(() => {
+            feedbackEl.style.display = 'none';
+        }, 5000);
+    }
 }
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new ContactForm('contactForm');
+});
