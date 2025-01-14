@@ -79,58 +79,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-
+    
         if (!rateLimiter.checkLimit()) {
             showFeedback('Please wait before submitting again.', true);
             return;
         }
-
+    
+        // Validate script URL
+        if (!scriptURL || !scriptURL.startsWith('https://script.google.com/macros/s/')) {
+            showFeedback('Invalid form configuration.', true);
+            return;
+        }
+    
         const validation = validator.validateForm();
         if (!validation.isValid) {
             showFeedback(validation.errors[0], true);
             return;
         }
-
+    
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Sending...';
-
+    
         try {
             const formData = new FormData(form);
             const params = new URLSearchParams(formData);
             const callbackName = 'formCallback_' + Date.now();
             
             const responsePromise = new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
+                window[callbackName] = (response) => {
+                    resolve(response);
+                    delete window[callbackName];
+                };
+                
+                setTimeout(() => {
                     delete window[callbackName];
                     reject(new Error('Request timed out'));
                 }, 10000);
-
-                window[callbackName] = (response) => {
-                    clearTimeout(timeout);
-                    delete window[callbackName];
-                    resolve(response);
-                };
             });
-
-            const script = document.createElement('script');
-            const url = new URL(window.GOOGLE_SCRIPT_URL);
+    
             params.append('callback', callbackName);
-            url.search = params.toString();
+            const queryString = params.toString();
+            const fullURL = `${scriptURL}${scriptURL.includes('?') ? '&' : '?'}${queryString}`;
             
-            script.src = url.toString();
+            const script = document.createElement('script');
+            script.src = fullURL;
             document.body.appendChild(script);
-
+    
             const response = await responsePromise;
             script.remove();
-
+    
             if (response.status === 'success') {
                 showFeedback('Message sent successfully!', false);
                 form.reset();
             } else {
                 throw new Error(response.message || 'Server returned an error');
             }
-
+    
         } catch (error) {
             console.error('Form submission error:', error);
             showFeedback(error.message || 'Error sending message. Please try again.', true);

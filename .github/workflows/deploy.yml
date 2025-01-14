@@ -11,13 +11,9 @@ jobs:
       
       - name: Replace Script URL
         run: |
-          $files = @("index.html", "src/js/config/environment.js")
-          foreach ($file in $files) {
-            (Get-Content $file) | 
-            ForEach-Object { $_ -replace '__GOOGLE_SCRIPT_URL__', '${{ secrets.GOOGLE_SCRIPT_URL }}' } | 
-            Set-Content $file
-          }
-        shell: pwsh
+          sed -i "s|__GOOGLE_SCRIPT_URL__|${{ secrets.GOOGLE_SCRIPT_URL }}|g" index.html
+          sed -i "s|__GOOGLE_SCRIPT_URL__|${{ secrets.GOOGLE_SCRIPT_URL }}|g" src/js/config/environment.js
+        shell: bash
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
