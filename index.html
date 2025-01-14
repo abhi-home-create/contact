@@ -91,13 +91,10 @@
         <p>&copy; 2025 Computational Plasma Physics Blog. All rights reserved.</p>
     </footer>
 
-    <script type="module">
-        import CONFIG from './src/js/config/environment.js';
-        if (!CONFIG.GOOGLE_SCRIPT_URL || CONFIG.GOOGLE_SCRIPT_URL.includes('PLACEHOLDER')) {
-            console.error('Google Script URL not configured');
-        } else {
-            window.CONFIG = CONFIG;
-        }
+    <script>
+        window.CONFIG = {
+            GOOGLE_SCRIPT_URL: '__GOOGLE_SCRIPT_URL__'
+        };
     </script>
     <script type="module" src="src/js/contact.js"></script>
 
