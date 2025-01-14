@@ -3,36 +3,25 @@ on:
   push:
     branches: [ main ]
 
-# Add permissions block
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
+      - uses: actions/checkout@v2
+      
       - name: Replace script URL
         run: |
-          echo "Replacing Google Script URL..."
-          perl -pi -e 's|window\.GOOGLE_SCRIPT_URL = '\''.*'\''|window.GOOGLE_SCRIPT_URL = '"'"'${{ secrets.GOOGLE_SCRIPT_URL }}'"'"'|g' index.html
-      
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-        
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: '.'
-          
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+          sed -i 's|{{ secrets.GOOGLE_SCRIPT_URL }}|${{ secrets.GOOGLE_SCRIPT_URL }}|g' index.html
+
+      - name: Test Google Script URL endpoint
+        run: |
+          curl -X GET "${{ secrets.GOOGLE_SCRIPT_URL }}?callback=test&name=Test&email=test@example.com&subject=Test&message=Test"
+
+      - name: Verify response
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ Google Script URL is working"
+          else
+            echo "❌ Google Script URL failed"
+            exit 1
+          fi
