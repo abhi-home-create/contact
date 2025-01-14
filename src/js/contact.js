@@ -67,74 +67,67 @@ function showFeedback(message, isError) {
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('contactForm');
     
-    // Debug logging for script URL
-    console.log('Loaded contact form script. URL:', window.GOOGLE_SCRIPT_URL);
-    
-    if (!window.GOOGLE_SCRIPT_URL) {
-        showFeedback('Configuration error: Missing script URL', true);
-        console.error('Google Script URL not configured');
+    // Validate Google Script URL
+    if (!window.GOOGLE_SCRIPT_URL || window.GOOGLE_SCRIPT_URL.includes('{{')) {
+        console.error('Invalid Google Script URL configuration');
+        showFeedback('Form is misconfigured. Please contact administrator.', true);
         return;
     }
 
+    // Clean up URL if needed
+    window.GOOGLE_SCRIPT_URL = window.GOOGLE_SCRIPT_URL.trim();
+    
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Sending...';
-        
+
         try {
-            // Log form data for debugging
             const formData = new FormData(form);
             const params = new URLSearchParams(formData);
-            console.log('Submitting form data:', Object.fromEntries(params));
             
             // Generate callback name
             const callbackName = 'formCallback_' + Date.now();
-            console.log('Generated callback name:', callbackName);
             
             // Create promise to handle JSONP response
             const responsePromise = new Promise((resolve, reject) => {
-                // Set timeout to handle no response
                 const timeout = setTimeout(() => {
                     delete window[callbackName];
                     reject(new Error('Request timed out'));
-                }, 10000); // 10 second timeout
+                }, 10000);
                 
-                // Create callback function
                 window[callbackName] = function(response) {
                     clearTimeout(timeout);
-                    console.log('Received response:', response);
                     resolve(response);
                 };
             });
             
-            // Add callback parameter
             params.append('callback', callbackName);
             
             // Create and append script
             const script = document.createElement('script');
-            const url = `${window.GOOGLE_SCRIPT_URL}?${params.toString()}`;
-            console.log('Making request to:', url);
+            const url = new URL(window.GOOGLE_SCRIPT_URL);
+            url.search = params.toString();
             
-            script.src = url;
+            console.log('Submitting to:', url.toString());
+            script.src = url.toString();
             
             script.onerror = (error) => {
                 console.error('Script loading error:', error);
-                showFeedback('Error connecting to server. Please check console for details.', true);
-                delete window[callbackName];
+                throw new Error('Failed to connect to server');
             };
             
             document.body.appendChild(script);
             
-            // Wait for response
             const response = await responsePromise;
             
             if (response.status === 'success') {
                 showFeedback('Message sent successfully!', false);
                 form.reset();
             } else {
-                throw new Error(response.message || 'Unknown error occurred');
+                throw new Error(response.message || 'Server returned an error');
             }
             
         } catch (error) {
@@ -143,12 +136,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = 'Send Message';
+            
+            // Clean up any leftover scripts
+            const scripts = document.querySelectorAll('script[src*="' + window.GOOGLE_SCRIPT_URL + '"]');
+            scripts.forEach(script => script.remove());
         }
     });
 });
 
 function showFeedback(message, isError) {
-    console.log(`Showing feedback: ${message} (error: ${isError})`);
     let feedbackEl = document.querySelector('.form-feedback');
     if (!feedbackEl) {
         feedbackEl = document.createElement('div');
