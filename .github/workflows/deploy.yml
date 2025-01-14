@@ -9,9 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - name: Replace script URL
+      - name: Replace configuration values
         run: |
-          sed -i 's|{{ secrets.GOOGLE_SCRIPT_URL }}|${{ secrets.GOOGLE_SCRIPT_URL }}|g' index.html
+          sed -i 's|GOOGLE_SCRIPT_URL_PLACEHOLDER|${{ secrets.GOOGLE_SCRIPT_URL }}|g' index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

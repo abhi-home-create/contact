@@ -69,8 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const validator = new FormValidator(form);
     const rateLimiter = new RateLimiter(5, 60000); // 5 requests per minute
 
-    if (!window.GOOGLE_SCRIPT_URL || window.GOOGLE_SCRIPT_URL.includes('{{')) {
-        console.error('Invalid Google Script URL configuration');
+    const scriptURL = window.CONFIG?.GOOGLE_SCRIPT_URL;
+
+    if (!scriptURL || scriptURL === 'GOOGLE_SCRIPT_URL_PLACEHOLDER') {
+        console.error('Google Script URL not properly configured');
         showFeedback('Form is misconfigured. Please contact administrator.', true);
         return;
     }
