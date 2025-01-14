@@ -1,7 +1,5 @@
 name: Configure Script URL
-on:
-  push:
-    branches: [ main ]
+on: [push]
 
 jobs:
   build:
@@ -9,13 +7,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Create build directory
-        run: mkdir -p dist
-      
       - name: Process JavaScript files
         run: |
-          echo "const GOOGLE_SCRIPT_URL = '${{ secrets.GOOGLE_SCRIPT_URL }}';" > dist/contact.js
-          cat src/js/contact.js >> dist/contact.js
+          echo "const GOOGLE_SCRIPT_URL = '${{ secrets.GOOGLE_SCRIPT_URL }}'
       
       - name: Upload artifact
         uses: actions/upload-artifact@v3
