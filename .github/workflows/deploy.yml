@@ -14,4 +14,8 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Fetch URL from secret
-      run: echo "URL=$(echo ${{ secrets.GOOGLE_SCRIPT_URL }})" >> $GITHUB_ENV
+      run: echo "URL=${{ secrets.GOOGLE_SCRIPT_URL }}" >> $GITHUB_ENV
+      
+    - name: Test Google Script URL endpoint
+      run: |
+        curl "https://script.google.com/macros/s/AKfycbySM1utRz3tcFRcqSI4ixSOKIQsG_9CsqA8SGoG289FCrvOHKko2VxO-DjulwtkqMUL/exec?callback=test"
