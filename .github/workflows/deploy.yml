@@ -3,35 +3,36 @@ on:
   push:
     branches: [ main ]
 
+# Add permissions block
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
     steps:
-      - uses: actions/checkout@v2
-      
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Replace script URL
         run: |
           echo "Replacing Google Script URL..."
-          # Use perl for more reliable replacement
           perl -pi -e 's|window\.GOOGLE_SCRIPT_URL = '\''.*'\''|window.GOOGLE_SCRIPT_URL = '"'"'${{ secrets.GOOGLE_SCRIPT_URL }}'"'"'|g' index.html
-          
-      - name: Verify replacement
-        run: |
-          echo "Verifying URL replacement..."
-          if grep -q "{{ secrets.GOOGLE_SCRIPT_URL }}" index.html; then
-            echo "❌ URL replacement failed"
-            exit 1
-          else
-            echo "✅ URL replacement successful"
-          fi
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-
-      - name: Test Google Script URL endpoint
-        run: |
-          echo "Testing endpoint..."
-          curl -X GET "${{ secrets.GOOGLE_SCRIPT_URL }}?callback=test"
+          path: '.'
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
