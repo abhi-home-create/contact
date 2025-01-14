@@ -11,11 +11,8 @@ jobs:
       
       - name: Replace Script URL
         run: |
-          $content = Get-Content "src/js/config/environment.js" -Raw
-          $content = $content -replace "GOOGLE_SCRIPT_URL_PLACEHOLDER", "${{ secrets.GOOGLE_SCRIPT_URL }}"
-          Set-Content "src/js/config/environment.js" $content
-        shell: pwsh
-
+          sed -i "s|GOOGLE_SCRIPT_URL_PLACEHOLDER|${{ secrets.GOOGLE_SCRIPT_URL }}|g" src/js/config/environment.js
+      
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
