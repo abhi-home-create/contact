@@ -1,18 +1,36 @@
-name: Configure Script URL
-on: [push]
+name: Deploy and Test
+on:
+  push:
+    branches: [ main ]
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
       
-      - name: Process JavaScript files
+      - name: Print working directory
+        run: pwd
+
+      - name: List files in working directory
+        run: ls -la
+
+      - name: Replace script URL
         run: |
-          echo "const GOOGLE_SCRIPT_URL = '${{ secrets.GOOGLE_SCRIPT_URL }}'
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: processed-js
-          path: dist/contact.js
+          sed -i 's|{{ secrets.GOOGLE_SCRIPT_URL }}|${{ secrets.GOOGLE_SCRIPT_URL }}|g' index.html
+
+      - name: Test Google Script URL endpoint
+        run: |
+          curl -X POST \
+          -d "name=John Doe&email=johndoe@example.com&subject=Test&message=This is a test message" \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          ${{ secrets.GOOGLE_SCRIPT_URL }}
+
+      - name: Verify response
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ Google Script URL is working"
+          else
+            echo "❌ Failed to connect to Google Script URL"
+            exit 1
+          fi
