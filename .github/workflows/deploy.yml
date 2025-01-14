@@ -1,38 +1,24 @@
-name: Deploy and Test
+name: Configure Script URL
 on:
   push:
     branches: [ main ]
 
-# Add permissions block
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Replace script URL
-        run: |
-          echo "Replacing Google Script URL..."
-          perl -pi -e 's|window\.GOOGLE_SCRIPT_URL = '\''.*'\''|window.GOOGLE_SCRIPT_URL = '"'"'${{ secrets.GOOGLE_SCRIPT_URL }}'"'"'|g' index.html
+      - uses: actions/checkout@v3
       
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-        
+      - name: Create build directory
+        run: mkdir -p dist
+      
+      - name: Process JavaScript files
+        run: |
+          echo "const GOOGLE_SCRIPT_URL = '${{ secrets.GOOGLE_SCRIPT_URL }}';" > dist/contact.js
+          cat src/js/contact.js >> dist/contact.js
+      
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          path: '.'
-          
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+          name: processed-js
+          path: dist/contact.js
