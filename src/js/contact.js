@@ -47,89 +47,116 @@ class RateLimiter {
     }
 }
 
-class ContactForm {
-    constructor(formId) {
-        this.form = document.getElementById(formId);
-        this.validator = new FormValidator(this.form);
-        this.rateLimiter = new RateLimiter(5, 60000); // 5 requests per minute
-        this.setupForm();
+function showFeedback(message, isError) {
+    let feedbackEl = document.querySelector('.form-feedback');
+    if (!feedbackEl) {
+        feedbackEl = document.createElement('div');
+        feedbackEl.className = 'form-feedback';
+        document.querySelector('.contact-form').insertAdjacentElement('beforeend', feedbackEl);
     }
-
-    setupForm() {
-        this.form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            if (!this.rateLimiter.checkLimit()) {
-                this.showFeedback('Please wait before submitting again.', true);
-                return;
-            }
-
-            const validation = this.validator.validateForm();
-            if (!validation.isValid) {
-                this.showFeedback(validation.errors.join('. '), true);
-                return;
-            }
-
-            const submitButton = this.form.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = 'Sending...';
-
-            try {
-                const formData = new FormData(this.form);
-                const queryString = new URLSearchParams(formData).toString();
-                
-                // Create a temporary form
-                const tempForm = document.createElement('form');
-                tempForm.method = 'POST';
-                tempForm.action = GOOGLE_SCRIPT_URL;
-                tempForm.target = '_blank'; // This prevents page reload
-                
-                // Add hidden fields
-                for (let [key, value] of formData.entries()) {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = value;
-                    tempForm.appendChild(input);
-                }
-                
-                // Add the form to the document and submit it
-                document.body.appendChild(tempForm);
-                tempForm.submit();
-                document.body.removeChild(tempForm);
-                
-                this.showFeedback('Message sent successfully!', false);
-                this.form.reset();
-                
-            } catch (error) {
-                console.error('Form submission error:', error);
-                this.showFeedback('Error sending message. Please try again.', true);
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = 'Send Message';
-            }
-        });
-    }
-
-    showFeedback(message, isError) {
-        let feedbackEl = this.form.querySelector('.form-feedback');
-        if (!feedbackEl) {
-            feedbackEl = document.createElement('div');
-            feedbackEl.className = 'form-feedback';
-            this.form.insertAdjacentElement('beforeend', feedbackEl);
-        }
-        
-        feedbackEl.textContent = message;
-        feedbackEl.className = `form-feedback ${isError ? 'error' : 'success'}`;
-        feedbackEl.style.display = 'block';
-        
-        setTimeout(() => {
-            feedbackEl.style.display = 'none';
-        }, 5000);
-    }
+    
+    feedbackEl.textContent = message;
+    feedbackEl.className = `form-feedback ${isError ? 'error' : 'success'}`;
+    feedbackEl.style.display = 'block';
+    
+    setTimeout(() => {
+        feedbackEl.style.display = 'none';
+    }, 5000);
 }
 
-// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new ContactForm('contactForm');
+    const form = document.getElementById('contactForm');
+    
+    // Validate Google Script URL
+    if (!window.GOOGLE_SCRIPT_URL || window.GOOGLE_SCRIPT_URL.includes('{{')) {
+        console.error('Invalid Google Script URL configuration');
+        showFeedback('Form is misconfigured. Please contact administrator.', true);
+        return;
+    }
+
+    // Clean up URL if needed
+    window.GOOGLE_SCRIPT_URL = window.GOOGLE_SCRIPT_URL.trim();
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Sending...';
+
+        try {
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData);
+            
+            // Generate callback name
+            const callbackName = 'formCallback_' + Date.now();
+            
+            // Create promise to handle JSONP response
+            const responsePromise = new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    delete window[callbackName];
+                    reject(new Error('Request timed out'));
+                }, 10000);
+                
+                window[callbackName] = function(response) {
+                    clearTimeout(timeout);
+                    resolve(response);
+                };
+            });
+            
+            params.append('callback', callbackName);
+            
+            // Create and append script
+            const script = document.createElement('script');
+            const url = new URL(window.GOOGLE_SCRIPT_URL);
+            url.search = params.toString();
+            
+            console.log('Submitting to:', url.toString());
+            script.src = url.toString();
+            
+            script.onerror = (error) => {
+                console.error('Script loading error:', error);
+                throw new Error('Failed to connect to server');
+            };
+            
+            document.body.appendChild(script);
+            
+            const response = await responsePromise;
+            
+            if (response.status === 'success') {
+                showFeedback('Message sent successfully!', false);
+                form.reset();
+            } else {
+                throw new Error(response.message || 'Server returned an error');
+            }
+            
+        } catch (error) {
+            console.error('Form submission error:', error);
+            showFeedback(error.message || 'Error sending message. Please try again.', true);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Send Message';
+            
+            // Clean up any leftover scripts
+            const scripts = document.querySelectorAll('script[src*="' + window.GOOGLE_SCRIPT_URL + '"]');
+            scripts.forEach(script => script.remove());
+        }
+    });
 });
+
+function showFeedback(message, isError) {
+    let feedbackEl = document.querySelector('.form-feedback');
+    if (!feedbackEl) {
+        feedbackEl = document.createElement('div');
+        feedbackEl.className = 'form-feedback';
+        document.querySelector('.contact-form').insertAdjacentElement('beforeend', feedbackEl);
+    }
+    
+    feedbackEl.textContent = message;
+    feedbackEl.className = `form-feedback ${isError ? 'error' : 'success'}`;
+    feedbackEl.style.display = 'block';
+    
+    setTimeout(() => {
+        feedbackEl.style.display = 'none';
+    }, 5000);
+}
