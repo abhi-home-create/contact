@@ -11,17 +11,27 @@ jobs:
       
       - name: Replace script URL
         run: |
-          sed -i 's|{{ secrets.GOOGLE_SCRIPT_URL }}|${{ secrets.GOOGLE_SCRIPT_URL }}|g' index.html
+          echo "Replacing Google Script URL..."
+          # Use perl for more reliable replacement
+          perl -pi -e 's|window\.GOOGLE_SCRIPT_URL = '\''.*'\''|window.GOOGLE_SCRIPT_URL = '"'"'${{ secrets.GOOGLE_SCRIPT_URL }}'"'"'|g' index.html
+          
+      - name: Verify replacement
+        run: |
+          echo "Verifying URL replacement..."
+          if grep -q "{{ secrets.GOOGLE_SCRIPT_URL }}" index.html; then
+            echo "❌ URL replacement failed"
+            exit 1
+          else
+            echo "✅ URL replacement successful"
+          fi
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
 
       - name: Test Google Script URL endpoint
         run: |
-          curl -X GET "${{ secrets.GOOGLE_SCRIPT_URL }}?callback=test&name=Test&email=test@example.com&subject=Test&message=Test"
-
-      - name: Verify response
-        run: |
-          if [ $? -eq 0 ]; then
-            echo "✅ Google Script URL is working"
-          else
-            echo "❌ Google Script URL failed"
-            exit 1
-          fi
+          echo "Testing endpoint..."
+          curl -X GET "${{ secrets.GOOGLE_SCRIPT_URL }}?callback=test"
