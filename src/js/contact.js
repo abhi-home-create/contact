@@ -87,11 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
     
-        // Validate script URL
-        if (!scriptURL || !scriptURL.startsWith('https://script.google.com/macros/s/')) {
-            showFeedback('Invalid form configuration.', true);
-            return;
-        }
     
         const validation = validator.validateForm();
         if (!validation.isValid) {
