@@ -11,7 +11,7 @@ jobs:
       
       - name: Use Script ID
         env:
-          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+          SCRIPT_ID: "${{ secrets.SCRIPT_ID }}"
         run: |
           # Set the script ID
           echo "using the script id"

@@ -66,16 +66,16 @@ function showFeedback(message, isError) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('contactForm');
-    
     // Validate Google Script URL
-    if (!window.GOOGLE_SCRIPT_URL || window.GOOGLE_SCRIPT_URL.includes('{{')) {
-        console.error('Invalid Google Script URL configuration');
+    const scriptId = "${{ secrets.SCRIPT_ID }}";
+    if (!scriptId || scriptId.includes('{{')) {
+        console.error('Invalid Google Script ID configuration');
         showFeedback('Form is misconfigured. Please contact administrator.', true);
         return;
     }
 
-    // Clean up URL if needed
-    window.GOOGLE_SCRIPT_URL = window.GOOGLE_SCRIPT_URL.trim();
+    // Construct Google Script URL
+    window.GOOGLE_SCRIPT_URL = `https://script.google.com/macros/s/${scriptId}/exec`;
     
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
