@@ -66,13 +66,30 @@ function showFeedback(message, isError) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('contactForm');
-    // Validate Google Script URL
-    if (!window.GOOGLE_SCRIPT_URL || 
-        !window.GOOGLE_SCRIPT_URL.startsWith('https://script.google.com/macros/s/')) {
-        console.error('Invalid Google Script URL configuration');
-        showFeedback('Form is misconfigured. Please contact administrator.', true);
+    
+    // Add debug logging
+    console.log('Current Script URL:', window.GOOGLE_SCRIPT_URL);
+    
+    // Improved URL validation
+    if (!window.GOOGLE_SCRIPT_URL) {
+        console.error('Script URL is missing');
+        showFeedback('Form is misconfigured (URL missing). Please contact administrator.', true);
         return;
     }
+
+    try {
+        const url = new URL(window.GOOGLE_SCRIPT_URL);
+        if (!url.href.startsWith('https://script.google.com/macros/s/')) {
+            console.error('Invalid Script URL format:', url.href);
+            showFeedback('Form is misconfigured (Invalid URL). Please contact administrator.', true);
+            return;
+        }
+    } catch (e) {
+        console.error('URL parsing error:', e);
+        showFeedback('Form is misconfigured (URL error). Please contact administrator.', true);
+        return;
+    }
+
 
     
     form.addEventListener('submit', async (e) => {
