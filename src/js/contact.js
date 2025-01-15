@@ -67,26 +67,30 @@ function showFeedback(message, isError) {
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('contactForm');
     
-    // Add debug logging
-    console.log('Current Script URL:', window.GOOGLE_SCRIPT_URL);
-    
-    // Improved URL validation
-    if (!window.GOOGLE_SCRIPT_URL) {
-        console.error('Script URL is missing');
-        showFeedback('Form is misconfigured (URL missing). Please contact administrator.', true);
-        return;
+    // Comprehensive URL Validation
+    function validateScriptURL(url) {
+        try {
+            if (!url || url.startsWith('__')) {
+                console.error('Script URL is not configured');
+                showFeedback('Form configuration error. Contact administrator.', true);
+                return false;
+            }
+
+            const parsedUrl = new URL(url);
+            const validHostPattern = /^script\.google\.com$/;
+            
+            return validHostPattern.test(parsedUrl.hostname) && 
+                   parsedUrl.pathname.startsWith('/macros/s/');
+        } catch (error) {
+            console.error('URL validation error:', error);
+            return false;
+        }
     }
 
-    try {
-        const url = new URL(window.GOOGLE_SCRIPT_URL);
-        if (!url.href.startsWith('https://script.google.com/macros/s/')) {
-            console.error('Invalid Script URL format:', url.href);
-            showFeedback('Form is misconfigured (Invalid URL). Please contact administrator.', true);
-            return;
-        }
-    } catch (e) {
-        console.error('URL parsing error:', e);
-        showFeedback('Form is misconfigured (URL error). Please contact administrator.', true);
+    // Enhanced error handling and logging
+    if (!validateScriptURL(window.GOOGLE_SCRIPT_URL)) {
+        console.error('Invalid Google Script URL');
+        showFeedback('Form misconfiguration detected.', true);
         return;
     }
 
