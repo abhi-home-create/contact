@@ -66,9 +66,7 @@ function showFeedback(message, isError) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('contactForm');
-    const validator = new FormValidator(form);
-    const rateLimiter = new RateLimiter(5, 60000); // 5 requests per minute
-
+    
     // Validate Google Script URL
     if (!window.GOOGLE_SCRIPT_URL || window.GOOGLE_SCRIPT_URL.includes('{{')) {
         console.error('Invalid Google Script URL configuration');
@@ -78,67 +76,87 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clean up URL if needed
     window.GOOGLE_SCRIPT_URL = window.GOOGLE_SCRIPT_URL.trim();
-
+    
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-    
-        if (!rateLimiter.checkLimit()) {
-            showFeedback('Please wait before submitting again.', true);
-            return;
-        }
-    
-    
-        const validation = validator.validateForm();
-        if (!validation.isValid) {
-            showFeedback(validation.errors[0], true);
-            return;
-        }
-    
+        
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Sending...';
-    
+
         try {
             const formData = new FormData(form);
             const params = new URLSearchParams(formData);
+            
+            // Generate callback name
             const callbackName = 'formCallback_' + Date.now();
             
+            // Create promise to handle JSONP response
             const responsePromise = new Promise((resolve, reject) => {
-                window[callbackName] = (response) => {
-                    resolve(response);
-                    delete window[callbackName];
-                };
-                
-                setTimeout(() => {
+                const timeout = setTimeout(() => {
                     delete window[callbackName];
                     reject(new Error('Request timed out'));
                 }, 10000);
+                
+                window[callbackName] = function(response) {
+                    clearTimeout(timeout);
+                    resolve(response);
+                };
             });
-    
-            params.append('callback', callbackName);
-            const queryString = params.toString();
-            const fullURL = `${scriptURL}${scriptURL.includes('?') ? '&' : '?'}${queryString}`;
             
+            params.append('callback', callbackName);
+            
+            // Create and append script
             const script = document.createElement('script');
-            script.src = fullURL;
+            const url = new URL(window.GOOGLE_SCRIPT_URL);
+            url.search = params.toString();
+            
+            console.log('Submitting to:', url.toString());
+            script.src = url.toString();
+            
+            script.onerror = (error) => {
+                console.error('Script loading error:', error);
+                throw new Error('Failed to connect to server');
+            };
+            
             document.body.appendChild(script);
-    
+            
             const response = await responsePromise;
-            script.remove();
-    
+            
             if (response.status === 'success') {
                 showFeedback('Message sent successfully!', false);
                 form.reset();
             } else {
                 throw new Error(response.message || 'Server returned an error');
             }
-    
+            
         } catch (error) {
             console.error('Form submission error:', error);
             showFeedback(error.message || 'Error sending message. Please try again.', true);
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = 'Send Message';
+            
+            // Clean up any leftover scripts
+            const scripts = document.querySelectorAll('script[src*="' + window.GOOGLE_SCRIPT_URL + '"]');
+            scripts.forEach(script => script.remove());
         }
     });
 });
+
+function showFeedback(message, isError) {
+    let feedbackEl = document.querySelector('.form-feedback');
+    if (!feedbackEl) {
+        feedbackEl = document.createElement('div');
+        feedbackEl.className = 'form-feedback';
+        document.querySelector('.contact-form').insertAdjacentElement('beforeend', feedbackEl);
+    }
+    
+    feedbackEl.textContent = message;
+    feedbackEl.className = `form-feedback ${isError ? 'error' : 'success'}`;
+    feedbackEl.style.display = 'block';
+    
+    setTimeout(() => {
+        feedbackEl.style.display = 'none';
+    }, 5000);
+}
