@@ -91,10 +91,9 @@
         <p>&copy; 2025 Computational Plasma Physics Blog. All rights reserved.</p>
     </footer>
 
-    <script>
-        window.CONFIG = {
-            SCRIPT_ID: '__GOOGLE_SCRIPT_ID__'
-        };
+    <script type="module">
+        import { CONFIG } from './src/js/config/config.js';
+        window.CONFIG = CONFIG;
     </script>
     <script type="module" src="src/js/contact.js"></script>
 
