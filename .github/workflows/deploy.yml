@@ -1,4 +1,5 @@
-name: Deploy
+name: Deploy Contact Form
+
 on:
   push:
     branches: [ main ]
@@ -7,13 +8,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       - name: Replace Google Script URL
         env:
           GOOGLE_SCRIPT_URL: ${{ secrets.GOOGLE_SCRIPT_URL }}
         run: |
-          # For Linux/Mac:
           sed -i "s|__GOOGLE_SCRIPT_URL__|$GOOGLE_SCRIPT_URL|g" index.html
-          # For Windows use:
-          # sed -i "s|__GOOGLE_SCRIPT_URL__|%GOOGLE_SCRIPT_URL%|g" index.html
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
