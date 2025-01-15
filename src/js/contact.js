@@ -66,20 +66,28 @@ function showFeedback(message, isError) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('contactForm');
+    
     // Validate Google Script URL
-    const scriptId = "${{ secrets.SCRIPT_ID }}";
-    if (!scriptId || scriptId.includes('{{')) {
-        console.error('Invalid Google Script ID configuration');
+    if (!window.GOOGLE_SCRIPT_URL || window.GOOGLE_SCRIPT_URL.includes('{{')) {
+        console.error('Invalid Google Script URL configuration');
         showFeedback('Form is misconfigured. Please contact administrator.', true);
         return;
     }
 
-    // Construct Google Script URL
-    window.GOOGLE_SCRIPT_URL = `https://script.google.com/macros/s/${scriptId}/exec`;
-    
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        const validation = validator.validateForm();
+        if (!validation.isValid) {
+            showFeedback(validation.errors.join(', '), true);
+            return;
+        }
+
+        if (!rateLimiter.checkLimit()) {
+            showFeedback('Too many requests. Please try again later.', true);
+            return;
+        }
+
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Sending...';
