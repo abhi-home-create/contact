@@ -9,9 +9,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - name: Use Script ID
+      - name: Replace Google Script URL
         env:
-          SCRIPT_ID: "${{ secrets.SCRIPT_ID }}"
+          GOOGLE_SCRIPT_URL: ${{ secrets.GOOGLE_SCRIPT_URL }}
         run: |
-          # Set the script ID
-          echo "using the script id"
+          # For Linux/Mac:
+          sed -i "s|__GOOGLE_SCRIPT_URL__|$GOOGLE_SCRIPT_URL|g" index.html
+          # For Windows use:
+          # sed -i "s|__GOOGLE_SCRIPT_URL__|%GOOGLE_SCRIPT_URL%|g" index.html
