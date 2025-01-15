@@ -143,20 +143,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
-function showFeedback(message, isError) {
-    let feedbackEl = document.querySelector('.form-feedback');
-    if (!feedbackEl) {
-        feedbackEl = document.createElement('div');
-        feedbackEl.className = 'form-feedback';
-        document.querySelector('.contact-form').insertAdjacentElement('beforeend', feedbackEl);
-    }
-    
-    feedbackEl.textContent = message;
-    feedbackEl.className = `form-feedback ${isError ? 'error' : 'success'}`;
-    feedbackEl.style.display = 'block';
-    
-    setTimeout(() => {
-        feedbackEl.style.display = 'none';
-    }, 5000);
-}
