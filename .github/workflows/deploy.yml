@@ -9,10 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - name: Replace Script URL
+      - name: Replace Script ID
         run: |
-          sed -i "s|__GOOGLE_SCRIPT_URL__|${{ secrets.GOOGLE_SCRIPT_URL }}|g" index.html
-          sed -i "s|__GOOGLE_SCRIPT_URL__|${{ secrets.GOOGLE_SCRIPT_URL }}|g" src/js/config/environment.js
+          sed -i "s|__GOOGLE_SCRIPT_ID__|${{ secrets.GOOGLE_SCRIPT_ID }}|g" index.html
+          sed -i "s|__GOOGLE_SCRIPT_ID__|${{ secrets.GOOGLE_SCRIPT_ID }}|g" src/js/config/environment.js
         shell: bash
 
       - name: Deploy
