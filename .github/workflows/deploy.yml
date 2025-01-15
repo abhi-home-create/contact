@@ -9,6 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
+      - name: Print Google Script URL
+        run: echo "GOOGLE_SCRIPT_URL=${{ secrets.GOOGLE_SCRIPT_URL }}"
+        shell: bash
+
       - name: Replace Script URL
         run: |
           sed -i "s|__GOOGLE_SCRIPT_URL__|${{ secrets.GOOGLE_SCRIPT_URL }}|g" index.html
