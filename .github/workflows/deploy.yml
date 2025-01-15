@@ -9,28 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - name: Use Script ID and Google Script URL
+      - name: Use Script ID
         env:
-          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
-          GOOGLE_SCRIPT_URL: ${{ secrets.GOOGLE_SCRIPT_URL }}
+          SCRIPT_ID: "${{ secrets.SCRIPT_ID }}"
         run: |
-          # Replace placeholders in index.html
-          sed -i 's|${{ secrets.GOOGLE_SCRIPT_URL }}|'"$GOOGLE_SCRIPT_URL"'|g' index.html
-          sed -i 's|${{ secrets.SCRIPT_ID }}|'"$SCRIPT_ID"'|g' src/js/contact.js
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
-      
-      - name: Install dependencies
-        run: npm install
-      
-      - name: Build project
-        run: npm run build
-      
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          # Set the script ID
+          echo "using the script id"
