@@ -12,7 +12,7 @@ jobs:
       - name: Replace Script ID
         run: |
           sed -i "s|__GOOGLE_SCRIPT_ID__|${{ secrets.GOOGLE_SCRIPT_ID }}|g" index.html
-          sed -i "s|__GOOGLE_SCRIPT_ID__|${{ secrets.GOOGLE_SCRIPT_ID }}|g" src/js/config/environment.js
+          sed -i "s|__GOOGLE_SCRIPT_ID__|${{ secrets.GOOGLE_SCRIPT_ID }}|g" src/js/config/config.js
         shell: bash
 
       - name: Deploy
